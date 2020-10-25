@@ -1,5 +1,7 @@
 package com.n26.controller;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.n26.request.TransactionRequest;
 import com.n26.response.StatisticResponse;
 import com.n26.service.StatisticsService;
@@ -7,11 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -33,7 +34,7 @@ public class StatisticsController {
     }
 
     @PostMapping(path = "/transactions")
-    public void doTransactions(@Valid @RequestBody TransactionRequest transaction , HttpServletResponse response){
+    public void doTransactions( @RequestBody TransactionRequest transaction , HttpServletResponse response){
         long epochTime = Instant.now(Clock.systemUTC()).getEpochSecond();
         if (transaction == null || transaction.getAmount().compareTo(new BigDecimal("0.0")) <=0 ) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -52,15 +53,27 @@ public class StatisticsController {
         if (epochTime < timestamp) {
             logger.info("outOfRange timestamp - currentEpochTime: {}, timestamp: {}, diff: {}", epochTime, timestamp, diff);
             statisticsService.addOutOfRangeStatistics(transaction.getAmount(), timestamp);
-            } else {
+            response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
+
+        } else {
             statisticsService.addStatistics(transaction.getAmount(), timestamp);
+            response.setStatus(HttpServletResponse.SC_CREATED);
         }
-        response.setStatus(HttpServletResponse.SC_CREATED);
     }
 
     @DeleteMapping (path = "/transactions")
     public void  deleteTransactions(HttpServletResponse response){
+            statisticsService.deleteTransitions();
             response.setStatus(HttpStatus.NO_CONTENT.value());
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public void handleHttpMessageNotReadableException(Exception ex , HttpServletResponse response){
+        if(ex.getCause() instanceof  MismatchedInputException){
+            response.setStatus( HttpStatus.BAD_REQUEST.value());
+        }
+        if(ex.getCause() instanceof InvalidFormatException){
+            response.setStatus( HttpStatus.UNPROCESSABLE_ENTITY.value());
+        }
+    }
 }
