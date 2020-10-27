@@ -3,7 +3,6 @@ package com.n26.service;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.concurrent.ScheduledExecutorService;
 
 import com.n26.response.StatisticResponse;
 import org.junit.Assert;
@@ -11,7 +10,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -42,7 +40,7 @@ public class StatisticsServiceTest {
         StatisticResponse oldStat = statisticsService.getStatistics();
 
         BigDecimal amount = BigDecimal.valueOf(1.2);
-        statisticsService.addOutOfRangeStatistics(amount, Instant.now(Clock.systemUTC()).getEpochSecond() + 1);
+        statisticsService.addFutureStatistics(amount, Instant.now(Clock.systemUTC()).getEpochSecond() + 1);
 
         StatisticResponse newStat = statisticsService.getStatistics();
         Assert.assertEquals("Count not matched", oldStat.getCount(), newStat.getCount());

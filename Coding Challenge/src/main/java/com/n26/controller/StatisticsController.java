@@ -52,7 +52,7 @@ public class StatisticsController {
         // timestamp is greater than 1 minute,
         if (epochTime < timestamp) {
             logger.info("outOfRange timestamp - currentEpochTime: {}, timestamp: {}, diff: {}", epochTime, timestamp, diff);
-            statisticsService.addOutOfRangeStatistics(transaction.getAmount(), timestamp);
+            statisticsService.addFutureStatistics(transaction.getAmount(), timestamp);
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
 
         } else {

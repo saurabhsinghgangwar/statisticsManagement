@@ -22,7 +22,7 @@ public class StatisticsService {
     public static final long TRANSACTION_EXPIRY_TIME= 60;
     private static  StatisticResponse latest = StatisticResponse.newBuilder().build();
     private static  Map<Long, StatisticResponse> statisticsMap = new ConcurrentHashMap<>();
-    private static  Map<Long, StatisticResponse> outOfRangeStatisticsMap = new ConcurrentHashMap<>();
+    private static  Map<Long, StatisticResponse> futureStatisticsMap = new ConcurrentHashMap<>();
 
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -58,7 +58,7 @@ public class StatisticsService {
     @Scheduled(cron = "* * * * * ?")
     private void removeOldRecords() {
         long currentEpoch = Instant.now(Clock.systemUTC()).getEpochSecond();
-        StatisticResponse futureResponse = outOfRangeStatisticsMap.remove(currentEpoch);
+        StatisticResponse futureResponse = futureStatisticsMap.remove(currentEpoch);
         if (futureResponse != null) {
             lock.lock();
             try {
@@ -91,8 +91,8 @@ public class StatisticsService {
                 latest.getAvg(), latest.getSum(), latest.getMax(), latest.getMin());
     }
 
-    public void addOutOfRangeStatistics(BigDecimal amount, long timestamp) {
-        StatisticResponse statistics = outOfRangeStatisticsMap.computeIfAbsent(timestamp,
+    public void addFutureStatistics(BigDecimal amount, long timestamp) {
+        StatisticResponse statistics = futureStatisticsMap.computeIfAbsent(timestamp,
                 key -> StatisticResponse.newBuilder().build());
         CalculationService.addStatistic(statistics, amount);
     }
@@ -100,6 +100,6 @@ public class StatisticsService {
     public void deleteTransitions () {
         latest = StatisticResponse.newBuilder().build();
         statisticsMap = new ConcurrentHashMap<>();
-        outOfRangeStatisticsMap = new ConcurrentHashMap<>();
+        futureStatisticsMap = new ConcurrentHashMap<>();
     }
 }
